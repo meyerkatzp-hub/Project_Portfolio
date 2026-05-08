@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meyer Katz — Infrastructure & Transport Projects</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+  :root {
+    --bg-dark: #0a0e1a;
+    --bg-darker: #060912;
+    --border-subtle: #1a2030;
+    --text-primary: #f1f5f9;
+    --text-muted: #64748b;
+    --text-faded: #475569;
+    --accent-deloitte: #86BC25;
+    --accent-steer: #38BDF8;
+    --accent-line: #d4a574;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: #f5f3ee;
+    color: #1a1a1a;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+  }
+  header {
+    background: var(--bg-dark);
+    color: var(--text-primary);
+    padding: 1.75rem 3rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    border-bottom: 1px solid var(--border-subtle);
+    position: relative;
+  }
+  header::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 3rem;
+    width: 48px;
+    height: 2px;
+    background: var(--accent-line);
+  }
+  .title-block h1 {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.85rem;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    line-height: 1.15;
+    color: var(--text-primary);
+  }
+  .eyebrow {
+    display: block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    margin-bottom: 0.5rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    font-weight: 400;
+  }
+  .stats {
+    display: flex;
+    gap: 2.5rem;
+    align-items: flex-end;
+  }
+  .stat { text-align: right; }
+  .stat-number {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 2.1rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  .stat-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    margin-top: 0.4rem;
+    font-weight: 400;
+  }
+  .controls {
+    background: var(--bg-darker);
+    padding: 0.7rem 3rem;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    flex-wrap: wrap;
+  }
+  .controls-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.62rem;
+    color: var(--text-faded);
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    margin-right: 0.4rem;
+  }
+  .filter-btn {
+    padding: 0.35rem 1rem;
+    border: 1px solid #1e293b;
+    background: transparent;
+    color: var(--text-faded);
+    cursor: pointer;
+    border-radius: 1px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.06em;
+    transition: all 0.2s ease;
+    font-weight: 400;
+  }
+  .filter-btn:hover {
+    border-color: #334155;
+    color: var(--text-primary);
+  }
+  .filter-btn.active {
+    background: #1a2030;
+    color: var(--text-primary);
+    border-color: #334155;
+  }
+  .filter-btn.deloitte.active {
+    border-color: var(--accent-deloitte);
+    color: var(--accent-deloitte);
+    background: rgba(134, 188, 37, 0.08);
+  }
+  .filter-btn.steer.active {
+    border-color: var(--accent-steer);
+    color: var(--accent-steer);
+    background: rgba(56, 189, 248, 0.08);
+  }
+  #map {
+    flex: 1;
+    background: #f5f3ee;
+  }
+  .leaflet-popup-content-wrapper {
+    border-radius: 2px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+    border: none;
+    padding: 0;
+    overflow: hidden;
+    background: white;
+  }
+  .leaflet-popup-content {
+    margin: 0 !important;
+    width: 320px !important;
+    font-family: 'Inter', sans-serif;
+  }
+  .popup-header {
+    padding: 0.7rem 1.1rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 500;
+  }
+  .popup-header.deloitte {
+    background: var(--accent-deloitte);
+    color: #1a2e08;
+  }
+  .popup-header.steer {
+    background: var(--accent-steer);
+    color: #0c4a6e;
+  }
+  .popup-body {
+    padding: 1.1rem 1.1rem 1rem;
+    background: white;
+  }
+  .popup-client {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.15rem;
+    font-weight: 600;
+    margin-bottom: 0.6rem;
+    color: #0f172a;
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+  }
+  .popup-project {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.82rem;
+    color: #475569;
+    line-height: 1.6;
+    font-weight: 400;
+  }
+  .popup-meta {
+    margin-top: 0.9rem;
+    display: flex;
+    gap: 1.2rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.62rem;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    border-top: 1px solid #f1f5f9;
+    padding-top: 0.7rem;
+    font-weight: 400;
+  }
+  .popup-meta span { display: flex; align-items: center; gap: 0.35rem; }
+  .leaflet-popup-tip { background: white; }
+  .leaflet-popup-close-button {
+    color: rgba(0,0,0,0.4) !important;
+    top: 4px !important;
+    right: 8px !important;
+    font-size: 18px !important;
+    font-weight: 300 !important;
+  }
+  .leaflet-popup-close-button:hover { color: rgba(0,0,0,0.7) !important; }
+  .marker-pin {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    border: 2.5px solid white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    color: white;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.25), 0 1px 3px rgba(0,0,0,0.15);
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .marker-pin:hover {
+    transform: scale(1.15);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.3), 0 2px 6px rgba(0,0,0,0.2);
+  }
+  .marker-pin.deloitte { color: #1a2e08; }
+  .marker-pin.steer { color: #0c4a6e; }
+  .legend-box {
+    background: var(--bg-dark);
+    color: var(--text-primary);
+    padding: 0.85rem 1.1rem;
+    border-radius: 2px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    line-height: 1.9;
+    border-left: 2px solid var(--accent-line);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+  }
+  .legend-title {
+    color: var(--text-muted);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    margin-bottom: 0.45rem;
+    font-size: 0.6rem;
+    font-weight: 400;
+  }
+  .legend-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    color: #cbd5e1;
+    font-weight: 400;
+  }
+  .legend-dot {
+    width: 11px; height: 11px;
+    border-radius: 50%;
+    display: inline-block;
+    border: 1.5px solid rgba(255,255,255,0.25);
+    flex-shrink: 0;
+  }
+  @media (max-width: 700px) {
+    header { padding: 1.25rem 1.5rem 1rem; }
+    header::after { left: 1.5rem; }
+    .controls { padding: 0.6rem 1.5rem; }
+    .title-block h1 { font-size: 1.4rem; }
+    .stat-number { font-size: 1.6rem; }
+    .stats { gap: 1.5rem; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="title-block">
+    <span class="eyebrow">Meyer Katz · Project Portfolio</span>
+    <h1>Infrastructure &amp; Transport Consulting<br>across Latin America &amp; the Caribbean</h1>
+  </div>
+  <div class="stats">
+    <div class="stat"><div class="stat-number">26</div><div class="stat-label">Projects</div></div>
+    <div class="stat"><div class="stat-number">6</div><div class="stat-label">Countries</div></div>
+    <div class="stat"><div class="stat-number">2022–26</div><div class="stat-label">Period</div></div>
+  </div>
+</header>
+<div class="controls">
+  <span class="controls-label">Filter</span>
+  <button class="filter-btn active" onclick="filterProjects('all',this)">All projects (26)</button>
+  <button class="filter-btn deloitte" onclick="filterProjects('Deloitte',this)">Deloitte (7)</button>
+  <button class="filter-btn steer" onclick="filterProjects('Steer',this)">Steer (19)</button>
+</div>
+<div id="map"></div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const projects = [
+  {id:1,  client:"GAD Chone — Municipal Government", project:"Strategic economic development plan for Canton Chone: ecotourism strategy and management model for the EXPO-CHONE agribusiness center.", company:"Deloitte", location:"Chone, Manabí, Ecuador", year:2026, lat:-0.6936, lng:-80.0939},
+  {id:2,  client:"Aeropuerto Internacional de Montecristi AIMC", project:"Feasibility study: market and demand analysis, business model definition, financial feasibility, and revenue projections for Montecristi International Airport.", company:"Deloitte", location:"Montecristi, Dominican Republic", year:2025, lat:19.8567, lng:-71.6469},
+  {id:3,  client:"Empresa Metro de Medellín", project:"Strategic advisory on real estate asset management and transit-oriented development (DOT) vehicles for the metro system, including financial structuring and tax analysis.", company:"Deloitte", location:"Medellín, Colombia", year:2025, lat:6.2476, lng:-75.5658},
+  {id:4,  client:"Korea Expressway Corp (KEC) via Deloitte Korea", project:"Pre-feasibility study for the Guayaquil–Cuenca Highway: Value for Money analysis comparing G2G, PPP and public schemes, and economic multiplier impact assessment.", company:"Deloitte", location:"Guayaquil–Cuenca corridor, Ecuador", year:2025, lat:-2.5500, lng:-79.4500},
+  {id:5,  client:"Confidential — Energy sector", project:"Specialized project support office: supplier management tool design, contractual standardization, and Excel dashboards for milestone tracking and KPI visualization.", company:"Deloitte", location:"Mexico City, Mexico", year:2025, lat:19.4326, lng:-99.1332},
+  {id:6,  client:"IFC — International Finance Corporation", project:"Zipaquirá Rail Project: financial modeling, cost-benefit analysis, and presentations to Colombia's Ministry of Transport (UMUS) and Ministry of Finance.", company:"Deloitte", location:"Zipaquirá, Cundinamarca, Colombia", year:2025, lat:5.0218, lng:-73.9389},
+  {id:7,  client:"ANI &amp; IDB (via Brigard &amp; Urrutia)", project:"Technical consultancy for tools and guidelines monitoring compliance with Road Green Infrastructure Guidelines (LIVV) in multimodal projects of the National Infrastructure Agency.", company:"Deloitte", location:"Bogotá, Colombia", year:2025, lat:4.7110, lng:-74.0721},
+  {id:8,  client:"AMVA — Metropolitan Area of the Aburrá Valley", project:"Detailed calibration of the four-stage transport model in the area of influence of the Southern Pre-Trunk corridor (Pretroncal del Sur).", company:"Steer", location:"Southern Aburrá Valley, Colombia", year:2024, lat:6.1700, lng:-75.6200},
+  {id:9,  client:"Confidential — Public transit operator", project:"Technical due diligence for Phase V of Bogotá's SITP: electric bus KPI analysis, battery cycles, failure intervals, and concession contract risk review.", company:"Steer", location:"Bogotá, Colombia", year:2024, lat:4.6500, lng:-74.0900},
+  {id:10, client:"Banco Nacional de Costa Rica (BNCR)", project:"Technical assistance for green financing: comparison and update of the bank's green taxonomy aligned with Costa Rica's national taxonomy guidelines.", company:"Steer", location:"San José, Costa Rica", year:2024, lat:9.9281, lng:-84.0907},
+  {id:11, client:"Confidential — Highway concessionaire", project:"Traffic study for Salamanca–León highways and Silao Bypass: OD/SP survey design, value of time modeling, and user segmentation by vehicle type and trip purpose.", company:"Steer", location:"Guanajuato, Mexico", year:2024, lat:20.9489, lng:-101.4286},
+  {id:12, client:"The World Bank Group", project:"Comprehensive ESG assessment of Colombia's railway infrastructure sector with reform recommendations aligned with the National Multimodal and Railway Master Plans.", company:"Steer", location:"Colombia (national)", year:2024, lat:4.7110, lng:-74.0500},
+  {id:13, client:"Steer — Internal R&amp;I Project", project:"Methodology to identify infrastructure needs at SITP bus stops in Bogotá using validation records, GIS data, and precipitation patterns to classify day types.", company:"Steer", location:"Bogotá, Colombia", year:2024, lat:4.7300, lng:-74.0500},
+  {id:14, client:"PYE Consortium — Central Railway Corridor", project:"Demand study for the pre-feasibility structuring of the railway connection between Bogotá–Cundinamarca and the Central Railway Corridor through Boyacá and Santander.", company:"Steer", location:"Bogotá–Boyacá–Santander corridor", year:2024, lat:5.5353, lng:-73.3678},
+  {id:15, client:"Municipality of Vega Alta", project:"Strategic plan for the improvement and expansion of public transportation services, including optimal route analysis and GIS mapping.", company:"Steer", location:"Vega Alta, Puerto Rico", year:2024, lat:18.4128, lng:-66.3273},
+  {id:16, client:"Ministry of Mines and Energy — Colombia", project:"National diagnostic of fuel supply chain logistics: agent mapping and supply model for rural, indigenous, and hard-to-reach communities nationwide.", company:"Steer", location:"Colombia (national)", year:2023, lat:4.6900, lng:-74.0900},
+  {id:17, client:"Concesión Túnel Aburrá Oriente (CTAO)", project:"Traffic scenario modeling applying sensitivities to six projection cases for the Aburrá–Oriente tunnel concession, including network model assumptions in EMME.", company:"Steer", location:"Medellín–Rionegro corridor, Colombia", year:2023, lat:6.1900, lng:-75.4600},
+  {id:18, client:"AMVA — Metropolitan Area of the Aburrá Valley", project:"Calibration of the four-stage transport model using EMME4 software, including comparative speed analysis between public and private transportation.", company:"Steer", location:"Aburrá Valley, Colombia", year:2023, lat:6.2476, lng:-75.5658},
+  {id:19, client:"FDN — National Development Finance Corporation", project:"Preliminary technical and legal studies for specialized logistics infrastructure (ILE) in Hatillo, Caldas, and Puerto Berrío, Antioquia.", company:"Steer", location:"Antioquia, Colombia", year:2023, lat:6.4906, lng:-74.4029},
+  {id:20, client:"ANSV — National Road Safety Agency", project:"Technical assistance for 18 local road safety plans (PLSV) in Cundinamarca: budget definition and funding source identification.", company:"Steer", location:"Cundinamarca, Colombia", year:2023, lat:4.8500, lng:-74.3500},
+  {id:21, client:"Concesionaria Ruta Bogotá Norte", project:"Traffic due diligence and full traffic study for the Accesos Norte II PPP corridors: OD matrix expansion, growth projections, and peer review presentations.", company:"Steer", location:"Bogotá North, Colombia", year:2023, lat:4.7900, lng:-74.0400},
+  {id:22, client:"FINDETER — Territorial Development Finance Corp.", project:"Traffic analysis and toll revenue forecast for the Cerritos II station in Risaralda, under inter-administrative contract 1594/2021.", company:"Steer", location:"Cerritos, Pereira, Risaralda", year:2023, lat:4.8133, lng:-75.7800},
+  {id:23, client:"CAF — Development Bank of Latin America", project:"Analysis of the Cúcuta–San Antonio de Ureña border crossing (Colombia–Venezuela): integration indicators, foreign trade flows, and regional connectivity.", company:"Steer", location:"Cúcuta border crossing, Colombia", year:2023, lat:7.8167, lng:-72.4500},
+  {id:24, client:"Concesión Túnel Aburrá Oriente (CTAO)", project:"Update of the demand and traffic study for the CTAO concession, considering the upcoming opening of the second Oriente Tunnel and area-of-influence dynamics.", company:"Steer", location:"Medellín–Rionegro corridor, Colombia", year:2022, lat:6.1900, lng:-75.4600},
+  {id:25, client:"Promotora Ferrocarril de Antioquia", project:"Specialized consulting for the development of Antioquia's transport and logistics master plan: trend-based growth models and value-of-time benchmarking by region.", company:"Steer", location:"Antioquia, Colombia", year:2022, lat:6.5500, lng:-75.4500},
+  {id:26, client:"S.F. CONVIAS", project:"Traffic studies for the Barranquilla Freight Corridor and Port Access District: field data collection, historical analysis, and demand projections.", company:"Steer", location:"Barranquilla port, Colombia", year:2022, lat:11.0078, lng:-74.8056}
+];
+const COLORS = {Deloitte:'#86BC25', Steer:'#38BDF8'};
+const map = L.map('map', {center:[6,-76], zoom:5, zoomControl:true});
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution:'© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+  maxZoom:18
+}).addTo(map);
+function createIcon(company) {
+  const color = COLORS[company];
+  const label = company === 'Deloitte' ? 'D' : 'S';
+  const cls = company.toLowerCase();
+  return L.divIcon({
+    className:'',
+    html:`<div class="marker-pin ${cls}" style="background:${color};">${label}</div>`,
+    iconSize:[30,30], iconAnchor:[15,15], popupAnchor:[0,-17]
+  });
+}
+function popup(p) {
+  return `<div class="popup-header ${p.company.toLowerCase()}"><span>${p.company}</span><span>№ ${p.id.toString().padStart(2,'0')}</span></div><div class="popup-body"><div class="popup-client">${p.client}</div><div class="popup-project">${p.project}</div><div class="popup-meta"><span>◉ ${p.location}</span><span style="margin-left:auto;">◷ ${p.year}</span></div></div>`;
+}
+let markers = [];
+projects.forEach(p => {
+  const m = L.marker([p.lat,p.lng], {icon:createIcon(p.company)});
+  m.bindPopup(popup(p), {maxWidth:340, closeButton:true});
+  m.company = p.company;
+  m.addTo(map);
+  markers.push(m);
+});
+function filterProjects(company, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  markers.forEach(m => company==='all'||m.company===company ? m.addTo(map) : map.removeLayer(m));
+}
+const legend = L.control({position:'bottomleft'});
+legend.onAdd = function() {
+  const div = L.DomUtil.create('div', 'legend-box');
+  div.innerHTML = `<div class="legend-title">Engagement</div><div class="legend-row"><span class="legend-dot" style="background:#86BC25;"></span>Deloitte · 2025–2026</div><div class="legend-row"><span class="legend-dot" style="background:#38BDF8;"></span>Steer · 2022–2024</div>`;
+  return div;
+};
+legend.addTo(map);
+</script>
+</body>
+</html>
